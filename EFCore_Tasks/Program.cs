@@ -11,27 +11,11 @@ namespace EFCore_Tasks
 {
     internal class Program
     {
-        private static Users currentUser;
-
+        private static Users currentUser; 
         static async Task Main(string[] args)
         {
             using (TaskContext taskContext = new())
             {
-                //if (!taskContext.Database.CanConnect())
-                //{
-                //    bool deleted = await taskContext.Database.EnsureDeletedAsync();
-                //    Console.WriteLine($"Baza skasowana: {deleted}");
-
-                //    bool created = await taskContext.Database.EnsureCreatedAsync();
-                //    Console.WriteLine($"Baza utworzona: {created}");
-
-                //    string sqlScript = taskContext.Database.GenerateCreateScript();
-                //    Console.WriteLine(sqlScript);
-                //}
-                //else
-                //{
-                //    Console.WriteLine("Baza już istnieje.");
-                //}
                 bool deleted = await taskContext.Database.EnsureDeletedAsync();
                 Console.WriteLine($"Baza skasowana: {deleted}");
 
@@ -55,10 +39,15 @@ namespace EFCore_Tasks
                             Console.Write("Podaj hasło: ");
                             string password = Console.ReadLine();
 
-                            currentUser = await taskContext.Users.FirstOrDefaultAsync(u => u.FirstName == login);
+                            
+                           currentUser = await taskContext.Users
+                        .Include(u => u.Role)
+                        .FirstOrDefaultAsync(u => u.FirstName == login);
+
                             if (currentUser != null && PasswordHasher.VerifyPassword(password, currentUser.Password))
                             {
                                 Console.WriteLine($"Zalogowano jako {currentUser.FirstName} {currentUser.LastName}.");
+                                Console.WriteLine($"Status: {currentUser.Role.Name}.");
                             }
                             else
                             {
@@ -92,7 +81,7 @@ namespace EFCore_Tasks
                             List<Tasks> tasks = await taskContext.Tasks.ToListAsync();
                             foreach (Tasks task in tasks)
                             {
-                                Console.WriteLine($"ID: {task.Id}, Tytuł: {task.Title}");
+                                Console.WriteLine($"ID: {task.Id}, Tytuł: {task.Title}, Data dodania: {task.CreatedDate}, Deadline: {task.DueDate}, Opis: {task.Description}");
                             }
                         }
                         else if (option == "3")
@@ -120,12 +109,20 @@ namespace EFCore_Tasks
                             Console.Write("Podaj tytuł nowego zadania: ");
                             string title = Console.ReadLine();
 
-                            Tasks newTask = new Tasks { Title = title };
+                            
+
+                            Console.Write("Podaj opis zadania: ");
+                            string desc = Console.ReadLine();
+
+                            Tasks newTask = new Tasks { Title = title,Description=desc };
                             taskContext.Tasks.Add(newTask);
+
                             await taskContext.SaveChangesAsync();
 
                             Console.WriteLine($"Dodano nowe zadanie: ID: {newTask.Id}, Tytuł: {newTask.Title}");
                         }
+                        
+
                     }
                 }
             }

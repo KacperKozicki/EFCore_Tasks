@@ -1,14 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using EFCore_Tasks.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using EFCore_Tasks.Models;
-using Microsoft.Extensions.Logging;
 
 namespace EFCore_Tasks.DataAccess
 {
@@ -16,8 +11,10 @@ namespace EFCore_Tasks.DataAccess
     {
         public DbSet<Users> Users { get; set; }
         public DbSet<Tasks> Tasks { get; set; }
-        public DbSet<TaskProgress> TaskProgress { get; set; } // Dodana definicja DbSet dla TaskProgress
-
+        public DbSet<TaskProgress> TaskProgress { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<TaskPriority> TaskPriorities { get; set; }
+        public DbSet<TaskStage> TaskStages { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -27,54 +24,67 @@ namespace EFCore_Tasks.DataAccess
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Konfiguracja relacji wiele-do-wielu między Tasks i Users za pomocą klasy pośredniczącej TaskProgress
-            modelBuilder.Entity<TaskProgress>()
-                .HasKey(tp => new { tp.TaskId, tp.UserId });
-
-            modelBuilder.Entity<TaskProgress>()
-                .HasOne(tp => tp.Task)
-                .WithMany(t => t.TaskProgress)
-                .HasForeignKey(tp => tp.TaskId);
-
-            modelBuilder.Entity<TaskProgress>()
-                .HasOne(tp => tp.User)
-                .WithMany(u => u.TaskProgress)
-                .HasForeignKey(tp => tp.UserId);
-
-            // Inicjalne dane dla tabel
-            Users s1 = new Users { Id = 1, FirstName = "aaaa", LastName = "aaaaa", Password = PasswordHasher.HashPassword("password1") };
-            Users s2 = new Users { Id = 2, FirstName = "ssss", LastName = "ssss", Password = PasswordHasher.HashPassword("password2") };
-            modelBuilder.Entity<Users>().HasData(s1, s2, new Users { Id = 3, FirstName = "dupa", LastName = "www", Password = PasswordHasher.HashPassword("password3") });
-
-            Tasks c1 = new Tasks { Id = 1, Title = "Zadanie1" };
-            Tasks c2 = new Tasks { Id = 2, Title = "Zadanie2" };
-            modelBuilder.Entity<Tasks>().HasData(c1, c2, new Tasks { Id = 3, Title = "Zadanie3" });
-
-            modelBuilder.Entity<TaskProgress>()
-                .HasData(
-                    new TaskProgress { TaskId = c1.Id, UserId = s1.Id },
-                    new TaskProgress { TaskId = c1.Id, UserId = s2.Id },
-                    new TaskProgress { TaskId = c2.Id, UserId = s2.Id }
-                );
-        }
-        private void InitDatabase(ModelBuilder modelBuilder)
-        {
-            Users s1 = new() { Id = 1, FirstName = "aaaa", LastName = "aaaaa", Password = PasswordHasher.HashPassword("password1") };
-            Users s2 = new() { Id = 2, FirstName = "ssss", LastName = "ssss", Password = PasswordHasher.HashPassword("password2") };
-            modelBuilder.Entity<Users>().HasData(s1, s2, new() { Id = 3, FirstName = "dupa", LastName = "www", Password = PasswordHasher.HashPassword("password3") });
-
-            Tasks c1 = new Tasks() { Id = 1, Title = "Zadanie1" };
-            Tasks c2 = new Tasks() { Id = 2, Title = "Zadanie2" };
-            modelBuilder.Entity<Tasks>().HasData(c1, c2, new() { Id = 3, Title = "Zadanie3" });
-
             modelBuilder.Entity<Tasks>()
                 .HasMany(c => c.Users)
                 .WithMany(s => s.Tasks)
                 .UsingEntity(cs => cs
                 .HasData(
-                    new { TasksId = c1.Id, UsersId = s1.Id },
-                    new { TasksId = c1.Id, UsersId = s2.Id },
-                    new { TasksId = c2.Id, UsersId = s2.Id }));
+                    new { TasksId = 1, UsersId = 1 },
+                    new { TasksId = 1, UsersId = 2 },
+                    new { TasksId = 2, UsersId = 2 }));
+
+
+
+
+            modelBuilder.Entity<Users>()
+            .HasOne(u => u.Role)
+            .WithMany(r => r.Users)
+            .HasForeignKey(u => u.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Role>()
+                .HasMany(r => r.Users)
+                .WithOne(u => u.Role)
+                .HasForeignKey(u => u.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = 1, Name = "Administrator" },
+                new Role { Id = 2, Name = "Pracownik" },
+                new Role { Id = 3, Name = "Kierownik" }
+            );
+            modelBuilder.Entity<Users>().HasData(
+                new Users { Id = 1, FirstName = "a", LastName = "admin", Password = PasswordHasher.HashPassword("a") , RoleId=1},
+                new Users { Id = 2, FirstName = "ssss", LastName = "ssss", Password = PasswordHasher.HashPassword("password2"),RoleId=3 },
+                new Users { Id = 3, FirstName = "dupa", LastName = "www", Password = PasswordHasher.HashPassword("password3"),RoleId=2 }
+            );
+
+            modelBuilder.Entity<Tasks>().HasData(
+                new Tasks { Id = 1, Title = "Zadanie1", Description = "Opis1", StatusId = 1, DueDate = new DateTime(2024, 6, 8, 9, 10, 02), CreatedDate =new DateTime(2023, 6, 8, 9, 10, 02),TaskPriority=1  },
+        
+                new Tasks { Id = 2, Title = "Zadanie2", Description = "Opis2" , StatusId = 1, DueDate = new DateTime(2024, 1, 8, 10, 40, 30), CreatedDate = new DateTime(2023, 6, 8, 9, 10, 02), TaskPriority = 2 },
+                new Tasks { Id = 3, Title = "Zadanie3", Description = "Opis3" ,StatusId = 1 , DueDate = new DateTime(2024, 10, 2, 2, 30, 03), CreatedDate = new DateTime(2023, 6, 8, 9, 10, 02), TaskPriority = 3 }
+            );
+
+            modelBuilder.Entity<TaskPoint>().HasData(
+                new TaskPoint {Id=1, TaskId=1,PointTitle="nie wiem co tu", IsCompleted=false }
+            );
+
+
+            
+
+            modelBuilder.Entity<TaskPriority>().HasData(
+                new TaskPriority { Id = 1, Name = "Niski" },
+                new TaskPriority { Id = 2, Name = "Średni" },
+                new TaskPriority { Id = 3, Name = "Wysoki" }
+            );
+
+            modelBuilder.Entity<TaskStage>().HasData(
+                new TaskStage { Id = 1, Name = "Nowe" },
+                new TaskStage { Id = 2, Name = "W trakcie" },
+                new TaskStage { Id = 3, Name = "Do zatwierdzenia" },
+                new TaskStage { Id = 4, Name = "Zakończone" }
+            );
         }
     }
 
