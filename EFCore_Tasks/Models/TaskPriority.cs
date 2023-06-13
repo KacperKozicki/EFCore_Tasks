@@ -10,6 +10,6 @@ namespace EFCore_Tasks.Models
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public List<Tasks> Tasks { get; set; }
+        public ICollection<Tasks> Tasks { get; set; }
     }
 }

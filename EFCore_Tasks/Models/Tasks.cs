@@ -14,14 +14,17 @@ namespace EFCore_Tasks.Models
         public int Id { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
-        public int TaskPriority { get; set; }
+        public int TaskPriorityId { get; set; }
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime DueDate { get; set; }
         public int StatusId { get; set; }
-        public List<Users> Users { get; set; }
+        public ICollection<Users> Users { get; set; }
+        public TaskPriority TaskPriority { get; set; }
+        public ICollection<TaskProgress> TaskProgresses { get; set; }
+        public ICollection<TaskPoint> TaskPoints { get; set; } // Nowa lista punktów zadania
 
-        public List<TaskProgress> TaskProgresses { get; set; }
-        public List<TaskPoint> TaskPoints { get; set; } // Nowa lista punktów zadania
+        public int TaskStageId { get; set; }
+        public TaskStage TaskStage { get; set; }
 
         public Tasks()
         {

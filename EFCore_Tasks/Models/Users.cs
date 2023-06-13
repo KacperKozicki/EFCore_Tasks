@@ -19,10 +19,8 @@ namespace EFCore_Tasks.Models
         [Required]
         public string Password { get; set; }
         public int RoleId { get; set; }
+
         public Role Role { get; set; }
-
-
-
         public ICollection<Tasks> Tasks { get; set; }
         public ICollection<TaskProgress> TaskProgress { get; set; }
     }
