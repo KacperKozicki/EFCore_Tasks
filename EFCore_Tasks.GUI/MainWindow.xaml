@@ -1,0 +1,22 @@
+﻿<Window x:Class="EFCore_Tasks.GUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Login" Height="250" Width="400">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Label Content="Login:" Grid.Row="0" Margin="10"/>
+        <TextBox x:Name="LoginTextBox" Grid.Row="0" Margin="100,14,94,10"/>
+
+        <Label Content="Password:" Grid.Row="1" Margin="10,10,94,10"/>
+        <PasswordBox x:Name="PasswordBox" Grid.Row="1" Margin="100,11,94,12"/>
+
+        <Button Content="Log In" Grid.Row="2" Margin="135,10,135,10" Click="LoginButton_Click"/>
+
+    </Grid>
+</Window>

@@ -166,13 +166,68 @@ namespace EFCore_Tasks
                             Console.Write("Podaj opis zadania: ");
                             string desc = Console.ReadLine();
 
-                            Tasks newTask = new Tasks { Title = title, Description = desc };
-                            taskContext.Tasks.Add(newTask);
+                            Console.Write("Podaj datę zakończenia zadania (w formacie yyyy-MM-dd): ");
+                            if (DateTime.TryParse(Console.ReadLine(), out DateTime dueDate))
+                            {
+                                dueDate = dueDate.Date.AddDays(1).AddSeconds(-1); // Ustawianie czasu na 23:59:59
 
-                            await taskContext.SaveChangesAsync();
+                                Console.Write("Podaj priorytet zadania: ");
+                                if (int.TryParse(Console.ReadLine(), out int taskPriorityId))
+                                {
+                                    // Sprawdź, czy podany taskPriorityId istnieje w tabeli TaskPriority
+                                    if (!taskContext.TaskPriorities.Any(tp => tp.Id == taskPriorityId))
+                                    {
+                                        Console.WriteLine("Błędny format priorytetu zadania.");
+                                        return;
+                                    }
 
-                            Console.WriteLine($"Dodano nowe zadanie: ID: {newTask.Id}, Tytuł: {newTask.Title}");
+                                    // Tworzenie nowego zadania
+                                    Tasks newTask = new Tasks
+                                    {
+                                        Title = title,
+                                        Description = desc,
+                                        DueDate = dueDate,
+                                        TaskPriorityId = taskPriorityId,
+                                        TaskStageId = 1 // ID dla etapu "Nowe"
+                                    };
+
+                                    taskContext.Tasks.Add(newTask);
+                                    await taskContext.SaveChangesAsync();
+
+                                    Console.WriteLine($"Dodano nowe zadanie: ID: {newTask.Id}, Tytuł: {newTask.Title}");
+
+                                    // Ustawianie postępu zadania na 0
+                                    TaskProgress taskProgress = new TaskProgress
+                                    {
+                                        TaskId = newTask.Id,
+                                        UserId = currentUser.Id,
+                                        Date = DateTime.Now,
+                                        Progress = 0
+                                    };
+
+                                    taskContext.TaskProgress.Add(taskProgress);
+                                    await taskContext.SaveChangesAsync();
+
+                                    Console.WriteLine($"Dodano postęp zadania dla ID: {taskProgress.Id}, Zadanie: {newTask.Title}, Postęp: {taskProgress.Progress}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Błędny format priorytetu zadania.");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Błędny format daty zakończenia zadania.");
+                            }
                         }
+
+
+
+
+
+
+
+
                     }
                 }
             }

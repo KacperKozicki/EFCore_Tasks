@@ -15,6 +15,7 @@ namespace EFCore_Tasks.DataAccess
         public DbSet<Role> Roles { get; set; }
         public DbSet<TaskPriority> TaskPriorities { get; set; }
         public DbSet<TaskStage> TaskStages { get; set; }
+        public DbSet<TaskPoint> TaskPoints { get; set; } // Dodaj to
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -24,7 +25,6 @@ namespace EFCore_Tasks.DataAccess
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-
             modelBuilder.Entity<Tasks>()
                 .HasOne(t => t.TaskStage)
                 .WithMany(ts => ts.Tasks)
@@ -33,22 +33,39 @@ namespace EFCore_Tasks.DataAccess
 
             modelBuilder.Entity<Tasks>()
                 .HasOne(t => t.TaskPriority)
-                .WithMany(r=>r.Tasks)
+                .WithMany(r => r.Tasks)
                 .HasForeignKey(t => t.TaskPriorityId)
-                .OnDelete(DeleteBehavior.Cascade); ;
+                .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Tasks>()
+                .HasMany(t => t.TaskPoints)
+                .WithOne(tp => tp.Task)
+                .HasForeignKey(tp => tp.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<TaskProgress>()
                 .HasOne(tp => tp.Task)
                 .WithMany(t => t.TaskProgresses)
                 .HasForeignKey(tp => tp.TaskId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasPrincipalKey(t => t.Id);
 
             modelBuilder.Entity<TaskProgress>()
                 .HasOne(tp => tp.User)
                 .WithMany(u => u.TaskProgress)
                 .HasForeignKey(tp => tp.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasPrincipalKey(u => u.Id);
+
+            modelBuilder.Entity<TaskProgress>()
+                .HasOne(tp => tp.TaskPoint) // Dodaj to
+                .WithMany() // Dodaj to
+                .HasForeignKey(tp => tp.TaskPointId) // Dodaj to
+                .OnDelete(DeleteBehavior.Cascade); // Dodaj to
+
+            modelBuilder.Entity<TaskProgress>()
+                .HasIndex(tp => tp.Progress)
+                .HasFilter("[Progress] = 100");
 
             modelBuilder.Entity<Tasks>()
                 .HasMany(c => c.Users)
@@ -57,7 +74,9 @@ namespace EFCore_Tasks.DataAccess
                     .HasData(
                         new { TasksId = 1, UsersId = 1 },
                         new { TasksId = 1, UsersId = 2 },
-                        new { TasksId = 2, UsersId = 2 }));
+                        new { TasksId = 2, UsersId = 3 }
+                    )
+                );
 
             modelBuilder.Entity<Users>()
                 .HasOne(u => u.Role)
@@ -76,29 +95,31 @@ namespace EFCore_Tasks.DataAccess
                 new Role { Id = 2, Name = "Pracownik" },
                 new Role { Id = 3, Name = "Kierownik" }
             );
+
             modelBuilder.Entity<TaskPriority>().HasData(
                 new TaskPriority { Id = 1, Name = "Niski" },
                 new TaskPriority { Id = 2, Name = "Średni" },
                 new TaskPriority { Id = 3, Name = "Wysoki" }
             );
+
             modelBuilder.Entity<Users>().HasData(
-                new Users { Id = 1, FirstName = "a", LastName = "admin", Password = PasswordHasher.HashPassword("a"), RoleId = 1 },
-                new Users { Id = 2, FirstName = "k", LastName = "ssss", Password = PasswordHasher.HashPassword("k"), RoleId = 3 },
-                new Users { Id = 3, FirstName = "p", LastName = "www", Password = PasswordHasher.HashPassword("p"), RoleId = 2 }
+                new Users { Id = 1, FirstName = "admin", LastName = "admin", Password = PasswordHasher.HashPassword("a"), RoleId = 1 },
+                new Users { Id = 2, FirstName = "kierownik", LastName = "ssss", Password = PasswordHasher.HashPassword("k"), RoleId = 3 },
+                new Users { Id = 3, FirstName = "pracownik", LastName = "www", Password = PasswordHasher.HashPassword("p"), RoleId = 2 },
+                new Users { Id = 4, FirstName = "gosc", LastName = "www", Password = PasswordHasher.HashPassword("g"), RoleId = 2 }
             );
 
             modelBuilder.Entity<Tasks>().HasData(
-                new Tasks { Id = 1, Title = "Zadanie1", Description = "Opis1", StatusId = 1, DueDate = new DateTime(2024, 6, 8, 9, 10, 2), CreatedDate = new DateTime(2023, 6, 8, 9, 10, 2), TaskPriorityId = 1 , TaskStageId=1},
-                new Tasks { Id = 2, Title = "Zadanie2", Description = "Opis2", StatusId = 1, DueDate = new DateTime(2024, 1, 8, 10, 40, 30), CreatedDate = new DateTime(2023, 6, 8, 9, 10, 2), TaskPriorityId = 2, TaskStageId = 1 },
+                new Tasks { Id = 1, Title = "Zadanie1", Description = "Opis1", StatusId = 1, DueDate = new DateTime(2024, 6, 8, 9, 10, 2), CreatedDate = new DateTime(2023, 6, 8, 9, 10, 2), TaskPriorityId = 1, TaskStageId = 1 },
+                new Tasks { Id = 2, Title = "Zadanie2", Description = "Opis2", StatusId = 1, DueDate = new DateTime(2024, 1, 8, 10, 40, 30), CreatedDate = new DateTime(2023, 6, 8, 9, 10, 2), TaskPriorityId = 2, TaskStageId = 4 },
                 new Tasks { Id = 3, Title = "Zadanie3", Description = "Opis3", StatusId = 1, DueDate = new DateTime(2024, 10, 2, 2, 30, 3), CreatedDate = new DateTime(2023, 6, 8, 9, 10, 2), TaskPriorityId = 3, TaskStageId = 1 }
             );
 
             modelBuilder.Entity<TaskProgress>().HasData(
-                new TaskProgress { Id = 1, TaskId = 1, UserId = 1, Date = DateTime.Now, Progress = 50 },
-                new TaskProgress { Id = 2, TaskId = 2, UserId = 1, Date = DateTime.Now, Progress = 100 }
+                new TaskProgress { Id = 1, TaskId = 1, UserId = 1, TaskPointId = 1, Date = DateTime.Now, Progress = 0 },
+                new TaskProgress { Id = 2, TaskId = 2, UserId = 1, TaskPointId = 3, Date = DateTime.Now, Progress = 100 }
+                //new TaskProgress { Id = 3, TaskId = 3, UserId = 2, TaskPointId = 4, Date = DateTime.Now, Progress = 0 }
             );
-
-            
 
             modelBuilder.Entity<TaskStage>().HasData(
                 new TaskStage { Id = 1, Name = "Nowe" },
@@ -106,6 +127,27 @@ namespace EFCore_Tasks.DataAccess
                 new TaskStage { Id = 3, Name = "Do zatwierdzenia" },
                 new TaskStage { Id = 4, Name = "Zakończone" }
             );
+
+            modelBuilder.Entity<TaskPoint>().HasData(
+                new TaskPoint() { Id = 1, TaskId = 1, Content = "Punkt 1", IsCompleted = false },
+                new TaskPoint() { Id = 2, TaskId = 1, Content = "Punkt 2", IsCompleted = false },
+                new TaskPoint() { Id = 3, TaskId = 2, Content = "Punkt 1", IsCompleted = false },
+                new TaskPoint() { Id = 4, TaskId = 3, Content = "Punkt 1", IsCompleted = false }
+            );
+        }
+
+        public override int SaveChanges()
+        {
+            var completedTasks = Tasks.Include(t => t.TaskProgresses)
+                                      .Where(t => t.TaskProgresses.Any(tp => tp.Progress == 100))
+                                      .ToList();
+
+            foreach (var task in completedTasks)
+            {
+                task.TaskStageId = 4; // Ustawienie etapu zadania na "Zakończone"
+            }
+
+            return base.SaveChanges();
         }
     }
 
