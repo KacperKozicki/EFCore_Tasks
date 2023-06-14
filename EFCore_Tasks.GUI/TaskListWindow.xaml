@@ -38,7 +38,7 @@
         <!-- UI elementy dla listy zadań -->
         <TabControl>
             <TabItem Header="Zadania">
-                <ListBox ItemsSource="{Binding TaskList}" ItemTemplate="{StaticResource TaskItemTemplate}" SelectionChanged="TaskListBox_SelectionChanged" />
+                <ListBox  ItemsSource="{Binding TaskList}" ItemTemplate="{StaticResource TaskItemTemplate}" SelectionChanged="TaskListBox_SelectionChanged" />
 
             </TabItem>
             <TabItem Header="Historia">

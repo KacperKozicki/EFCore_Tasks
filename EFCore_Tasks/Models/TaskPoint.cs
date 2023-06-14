@@ -39,6 +39,7 @@ namespace EFCore_Tasks.Models
         public Tasks Task { get; set; }
         public ICollection<Tasks> Tasks { get; set; }
 
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged(string propertyName)

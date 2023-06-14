@@ -5,14 +5,16 @@
         Title="Task Details" Height="450" Width="800">
     <Grid>
         <StackPanel Name="stackPanelTasks" Orientation="Vertical">
-            <TextBlock Text="{Binding SelectedTask.Description}" Margin="10" Width="675" />
             <TextBlock Text="{Binding SelectedTask.Title}" FontSize="20" FontWeight="Bold" Width="701" />
-            <ItemsControl ItemsSource="{Binding TaskPoints}" Height="172" Width="688">
+            <TextBlock Text="{Binding SelectedTask.Description}" Width="694" />
+            <ItemsControl ItemsSource="{Binding TaskPoints}" Height="206" Width="694">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <CheckBox Content="{Binding Content}" IsChecked="{Binding IsCompleted}" Margin="10" />
+                        <CheckBox Content="{Binding Content}" IsChecked="{Binding IsCompleted, Mode=TwoWay}" Margin="10" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
+
+
             </ItemsControl>
 
 

@@ -21,13 +21,17 @@ namespace EFCore_Tasks.GUI
 {
     public partial class TaskListWindow : Window, INotifyPropertyChanged
     {
+        /// <summary>
+        /// Aktualnie zalogowany użytkownik.
+        /// </summary>
         public Users CurrentUser { get; set; }
         private readonly TaskContext taskContext;
 
         private ObservableCollection<Tasks> taskList;
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
+        /// <summary>
+        /// Lista zadań.
+        /// </summary>
         public ObservableCollection<Tasks> TaskList
         {
             get { return taskList; }
@@ -40,6 +44,9 @@ namespace EFCore_Tasks.GUI
 
         private ObservableCollection<Tasks> taskHistory;
 
+        /// <summary>
+        /// Historia zakończonych zadań.
+        /// </summary>
         public ObservableCollection<Tasks> TaskHistory
         {
             get { return taskHistory; }
@@ -50,23 +57,16 @@ namespace EFCore_Tasks.GUI
             }
         }
 
-        private int progress;
-
-        public int Progress
-        {
-            get { return progress; }
-            set
-            {
-                if (progress != value)
-                {
-                    progress = value;
-                    OnPropertyChanged(nameof(Progress));
-                }
-            }
-        }
+        /// <summary>
+        /// Postęp aktualnie wyświetlanego zadania.
+        /// </summary>
+        public int Progress { get; set; }
 
         private ObservableCollection<TaskProgress> taskProgresses;
 
+        /// <summary>
+        /// Lista postępów zadań.
+        /// </summary>
         public ObservableCollection<TaskProgress> TaskProgresses
         {
             get { return taskProgresses; }
@@ -77,6 +77,15 @@ namespace EFCore_Tasks.GUI
             }
         }
 
+        /// <summary>
+        /// Zdarzenie wywoływane po zmianie wartości właściwości.
+        /// </summary>
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        /// <summary>
+        /// Konstruktor klasy TaskListWindow.
+        /// </summary>
+        /// <param name="user">Zalogowany użytkownik</param>
         public TaskListWindow(Users user)
         {
             InitializeComponent();
@@ -86,15 +95,23 @@ namespace EFCore_Tasks.GUI
             taskContext = new TaskContext();
             TaskHistory = new ObservableCollection<Tasks>();
             TaskProgresses = new ObservableCollection<TaskProgress>();
+
             LoadTasks();
         }
 
+        /// <summary>
+        /// Metoda wywoływana po zmianie wartości właściwości.
+        /// </summary>
+        /// <param name="propertyName">Nazwa zmienionej właściwości</param>
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        private async void LoadTasks()
+        /// <summary>
+        /// Asynchronicznie wczytuje zadania z bazy danych i aktualizuje listy zadań.
+        /// </summary>
+        public async void LoadTasks()
         {
             IQueryable<Tasks> tasksQuery;
 
@@ -123,7 +140,6 @@ namespace EFCore_Tasks.GUI
 
             TaskList.Clear();
             TaskHistory.Clear();
-            //Progress = 0;
 
             foreach (var task in tasks)
             {
@@ -138,16 +154,19 @@ namespace EFCore_Tasks.GUI
                 // Przypisanie wartości postępu bez obliczeń
                 if (task.TaskProgresses != null && task.TaskProgresses.Any())
                 {
-                    task.Progress = task.TaskProgresses.OrderByDescending(tp => tp.Date).FirstOrDefault()?.Progress ?? 0;
+                    task.Progress = task.TaskProgresses.Sum(tp => tp.Progress) / task.TaskProgresses.Count;
                 }
                 else
                 {
                     task.Progress = 0;
                 }
-
             }
-
         }
+
+        /// <summary>
+        /// Obsługa zdarzenia kliknięcia przycisku dodawania zadania.
+        /// Otwiera okno dialogowe AddTaskDialog.
+        /// </summary>
         private void OpenAddTaskDialog_Click(object sender, RoutedEventArgs e)
         {
             if (UserHasPermissionToCreateTask())
@@ -161,13 +180,19 @@ namespace EFCore_Tasks.GUI
             }
         }
 
-        
-
+        /// <summary>
+        /// Obsługa zdarzenia zmiany właściwości zadania.
+        /// Wywołuje zdarzenie PropertyChanged dla właściwości TaskList.
+        /// </summary>
         private void Task_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             OnPropertyChanged(nameof(TaskList));
         }
 
+        /// <summary>
+        /// Dodaje nowe zadanie do listy zadań.
+        /// </summary>
+        /// <param name="newTask">Nowe zadanie</param>
         public void AddNewTask(Tasks newTask)
         {
             TaskList.Add(newTask);
@@ -175,21 +200,10 @@ namespace EFCore_Tasks.GUI
             OnPropertyChanged(nameof(TaskList));
         }
 
-        private void TaskListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            var listBox = (ListBox)sender;
-            var selectedTask = (Tasks)listBox.SelectedItem;
-
-            if (selectedTask != null)
-            {
-                var taskDetailsWindow = new TaskDetailsWindow(selectedTask);
-                taskDetailsWindow.ShowDialog();
-
-                // Clear the selection after opening the task details window
-                listBox.SelectedItem = null;
-            }
-        }
-
+        /// <summary>
+        /// Obsługa zdarzenia kliknięcia przycisku wylogowania.
+        /// Wyświetla okno MainWindow i zamyka bieżące okno.
+        /// </summary>
         private void LogoutButton_Click(object sender, RoutedEventArgs e)
         {
             MainWindow mainWindow = new MainWindow();
@@ -197,6 +211,10 @@ namespace EFCore_Tasks.GUI
             Close();
         }
 
+        /// <summary>
+        /// Asynchronicznie usuwa zadanie z bazy danych i z listy zadań.
+        /// </summary>
+        /// <param name="task">Zadanie do usunięcia</param>
         private async void DeleteTask(Tasks task)
         {
             var confirmResult = MessageBox.Show("Czy na pewno chcesz usunąć to zadanie?", "Potwierdzenie usunięcia", MessageBoxButton.YesNo);
@@ -209,7 +227,10 @@ namespace EFCore_Tasks.GUI
             }
         }
 
-        // Dodaj obsługę zdarzenia dla przycisku usuwania zadania
+        /// <summary>
+        /// Obsługa zdarzenia kliknięcia przycisku usuwania zadania.
+        /// Usuwa zadanie z listy zadań i z bazy danych, jeśli użytkownik ma odpowiednie uprawnienia.
+        /// </summary>
         private void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
             if (CurrentUser.RoleId == 1 || CurrentUser.RoleId == 3)
@@ -224,24 +245,19 @@ namespace EFCore_Tasks.GUI
             }
         }
 
-        //private void OpenAddTaskDialog_Click(object sender, RoutedEventArgs e)
-        //{
-        //    if (UserHasPermissionToCreateTask())
-        //    {
-        //        AddTaskDialog dialog = new AddTaskDialog(this);
-        //        dialog.ShowDialog();
-        //    }
-        //    else
-        //    {
-        //        MessageBox.Show("Nie masz uprawnień do dodawania nowych zadań.");
-        //    }
-        //}
-
+        /// <summary>
+        /// Sprawdza, czy użytkownik ma uprawnienia do tworzenia nowego zadania.
+        /// </summary>
+        /// <returns>Prawda, jeśli użytkownik ma uprawnienia do tworzenia zadania; w przeciwnym razie fałsz</returns>
         private bool UserHasPermissionToCreateTask()
         {
             return CurrentUser.RoleId == 1 || CurrentUser.RoleId == 3;
         }
 
+        /// <summary>
+        /// Obsługa zdarzenia ładowania przycisku usuwania.
+        /// Ustawia widoczność przycisku w zależności od roli użytkownika.
+        /// </summary>
         private void DeleteButton_Loaded(object sender, RoutedEventArgs e)
         {
             var button = (Button)sender;
@@ -257,71 +273,22 @@ namespace EFCore_Tasks.GUI
             }
         }
 
-
-
-
-
-
-
-
-
-
-        private void OpenTaskDetailsWindow(Tasks selectedTask)
+        /// <summary>
+        /// Obsługa zdarzenia zmiany zaznaczenia w ListBoxie z zadaniami.
+        /// Otwiera okno TaskDetailsWindow, wyświetlające szczegóły wybranego zadania.
+        /// </summary>
+        private void TaskListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var taskDetailsWindow = new TaskDetailsWindow(selectedTask);
-            taskDetailsWindow.TaskPointChecked += TaskDetailsWindow_TaskPointChecked;
-            taskDetailsWindow.TaskPointUnchecked += TaskDetailsWindow_TaskPointUnchecked;
-            taskDetailsWindow.ShowDialog();
+            var listBox = (ListBox)sender;
+            var selectedTask = (Tasks)listBox.SelectedItem;
 
-            // Aktualizuj ProgressBar po zamknięciu okna TaskDetailsWindow
-            UpdateProgressBar();
-        }
-
-        private void TaskDetailsWindow_TaskPointChecked(object sender, TaskPoint taskPoint)
-        {
-            // Aktualizuj TaskProgress na podstawie zaznaczonego TaskPoint
-            var taskProgress = TaskProgresses.FirstOrDefault(tp => tp.TaskPointId == taskPoint.Id);
-            if (taskProgress != null)
+            if (selectedTask != null)
             {
-                taskProgress.Progress = 100;
-                // Zapisz zmiany w bazie danych
-                SaveTaskProgress(taskProgress);
-            }
-            UpdateProgressBar();
-        }
+                var taskDetailsWindow = new TaskDetailsWindow(selectedTask);
+                taskDetailsWindow.ShowDialog();
 
-        private void TaskDetailsWindow_TaskPointUnchecked(object sender, TaskPoint taskPoint)
-        {
-            // Aktualizuj TaskProgress na podstawie odznaczonego TaskPoint
-            var taskProgress = TaskProgresses.FirstOrDefault(tp => tp.TaskPointId == taskPoint.Id);
-            if (taskProgress != null)
-            {
-                taskProgress.Progress = 0;
-                // Zapisz zmiany w bazie danych
-                SaveTaskProgress(taskProgress);
-            }
-            UpdateProgressBar();
-        }
-
-        private void UpdateProgressBar()
-        {
-            // Oblicz wartość postępu na podstawie zadań w kolekcji TaskProgresses
-            int totalProgress = TaskProgresses.Sum(tp => tp.Progress);
-
-            // Oblicz średnią wartość postępu (uwzględniając liczbę zadań)
-            int averageProgress = TaskProgresses.Count > 0 ? totalProgress / TaskProgresses.Count : 0;
-
-            // Aktualizuj wartość Progress w klasie TaskListWindow
-            Progress = averageProgress;
-        }
-
-
-        private void SaveTaskProgress(TaskProgress taskProgress)
-        {
-            using (var context = new TaskContext())
-            {
-                context.TaskProgress.Update(taskProgress);
-                context.SaveChanges();
+                // Clear the selection after opening the task details window
+                listBox.SelectedItem = null;
             }
         }
     }

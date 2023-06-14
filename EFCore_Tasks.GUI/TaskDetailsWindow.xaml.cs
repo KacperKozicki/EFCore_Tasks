@@ -4,33 +4,41 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
 namespace EFCore_Tasks.GUI
 {
+    
     public partial class TaskDetailsWindow : Window
     {
-        public event EventHandler<TaskPoint> TaskPointChecked;
-        public event EventHandler<TaskPoint> TaskPointUnchecked;
-
-
+        public event EventHandler<IEnumerable<TaskPoint>> TaskPointsUpdated;
 
         public Tasks SelectedTask { get; set; }
         public ObservableCollection<TaskPoint> TaskPoints { get; set; }
+       
 
         public TaskDetailsWindow(Tasks selectedTask)
         {
             InitializeComponent();
-            
+            Closing += TaskDetailsWindow_Closing;
             SelectedTask = selectedTask;
+
             TaskPoints = new ObservableCollection<TaskPoint>(SelectedTask.TaskPoints);
             DataContext = this;
             LoadTaskPoints();
-            Closing += TaskDetailsWindow_Closing;
-        
+
+            foreach (var taskPoint in TaskPoints)
+            {
+                taskPoint.PropertyChanged += TaskPoint_PropertyChanged;
+            }
+
+            
         }
+
         private void LoadTaskPoints()
         {
             try
@@ -62,30 +70,21 @@ namespace EFCore_Tasks.GUI
             {
                 context.TaskPoints.UpdateRange(taskPoints);
                 context.SaveChanges();
+                // Odśwież listę zadań w TaskListWindow
+                var taskListWindow = Application.Current.Windows.OfType<TaskListWindow>().FirstOrDefault();
+                taskListWindow?.LoadTasks();
             }
         }
 
-        private void TaskDetailsWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void TaskDetailsWindow_Closing(object sender, CancelEventArgs e)
         {
+            TaskPointsUpdated?.Invoke(this, TaskPoints);
             SaveTaskPoints(TaskPoints);
         }
 
-
-        private void CheckBox_Checked(object sender, RoutedEventArgs e)
+        private void TaskPoint_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            var checkBox = (CheckBox)sender;
-            var taskPoint = (TaskPoint)checkBox.DataContext;
-
-            TaskPointChecked?.Invoke(this, taskPoint);
+            SelectedTask.Progress = TaskPoints.Count(tp => tp.IsCompleted) * 100 / TaskPoints.Count;
         }
-
-        private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-            var checkBox = (CheckBox)sender;
-            var taskPoint = (TaskPoint)checkBox.DataContext;
-
-            TaskPointUnchecked?.Invoke(this, taskPoint);
-        }
-
     }
 }
